@@ -1,7 +1,6 @@
 # 采用sklearn的聚类算法KMeans Algorithm，识别一幅图片的主颜色
 # fork自Github：Siyuan Li，感谢
 
-
 import numpy as np
 import cv2
 from PIL import Image, ImageDraw, ImageFont
@@ -19,7 +18,7 @@ def color_picker(pic_name):
     :return: a group of list showing the main RGB color of the picture
     """
     warnings.filterwarnings('ignore')
-    k = 3   # 决定有几个中心点
+    k = 4   # 决定有几个中心点
     pic = cv2.imread(pic_name)   # 读取图片
     image = cv2.resize(pic, (100, 100), Image.ANTIALIAS)  # 将图片尺寸改成需要的大小
     new_name = pic_name+'_resized.jpg'
@@ -44,22 +43,33 @@ def color_picker(pic_name):
         color_info.__setitem__(key, value)
     color_info_sorted = sorted(color_info.keys(), reverse=True)
     colorInfo = [(k, color_info[k]) for k in color_info_sorted]
+    assert color_info.__len__() == k
     for color in colorInfo:
         print('ratio:', color[0], '         color:', color[1])
 
-    # 使用算法跑出的中心点，生成一个矩阵，为数据可视化做准备
-    result = []
-    result_width = 200
-    result_height_per_center = 80
-    for center_index in range(k):
-        result.append(
-            np.full((result_width * result_height_per_center, n_channels), colorInfo[center_index][1], dtype=int))
-    result = np.array(result)
-    result = result.reshape((result_height_per_center * k, result_width, n_channels))
 
-    # 保存图片
+
+    # 使用算法跑出的中心点，生成一个矩阵，为数据可视化做准备
+    result_width = 200  # 可视化结果矩阵的宽度
+    result_height = 300  # 可视化结果矩阵的高度
+    result = []
+    height = []
+    for center_indexx in range(k):
+        height.append(int(result_height * colorInfo[center_indexx][0]))
+    real_height = sum(height)
+    for center_index in range(k):
+        # 为每一个颜色中心，创建一个shape为（长*宽*该颜色ratio）x3的矩阵，填充数字为每种颜色的RGB数值
+        result.append(
+            np.full((result_width * height[center_index], n_channels), colorInfo[center_index][1], dtype=int))
+    i = 0
+    d = np.ones(shape=(1, n_channels))
+    while i < k:
+        d = np.concatenate((d, result[i]), axis=0)
+        i += 1
+    result = np.delete(d, 0, axis=0)
+    result = result.reshape(real_height, result_width, n_channels)
     io.imsave(os.path.splitext(pic_name)[0] + '_result.bmp', result)
 
 
-color_picker("Allan.jpg")
+color_picker("A.jpg")
 
